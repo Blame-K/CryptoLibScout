@@ -2,6 +2,54 @@
 
 这个项目的第一阶段目标是：收集常用加密算法库的可复现二进制样本，并为后续 vSim feature 提取和相似性匹配建立基础数据。
 
+## 仓库内容说明
+
+本仓库只保存项目源码、配置、脚本和文档，不直接保存本地生成的大型数据目录。
+
+以下目录需要在本地准备或重新生成，已在 `.gitignore` 中排除：
+
+```text
+vSim/        # vSim 上游项目，本地 clone
+corpus/      # 二进制语料、源码包、构建目录、vSim dump/cache/fingerprint
+.venv/       # Python 虚拟环境
+.vsim310-venv/
+.uv-python/
+```
+
+`corpus/` 当前可能达到数 GB 到十几 GB，普通 Git 仓库不适合直接管理这些文件。需要共享完整语料时，建议使用 GitHub Release、Git LFS、Zenodo、Hugging Face Dataset 或其他对象存储；本仓库默认提供脚本来复现生成过程。
+
+## 克隆后准备 vSim
+
+项目脚本默认认为 vSim 位于仓库根目录的 `vSim/`：
+
+```bash
+git clone https://github.com/Blame-K/CryptoLibScout.git
+cd CryptoLibScout
+git clone https://github.com/OSUSecLab/vSim.git vSim
+```
+
+建议使用 Python 3.10 为 vSim 准备独立虚拟环境：
+
+```bash
+python3.10 -m venv .vsim310-venv
+source .vsim310-venv/bin/activate
+python -m pip install --upgrade pip
+```
+
+如果 vSim 上游仓库提供依赖文件，请优先按上游说明安装。例如：
+
+```bash
+python -m pip install -r vSim/requirements.txt
+```
+
+项目提供了一个环境脚本，用来设置 `VSIM_HOME`、`PYTHONPATH` 和 vSim 虚拟环境路径：
+
+```bash
+source scripts/vsim_env.sh
+```
+
+如果你的 vSim 路径或虚拟环境路径不同，请同步修改 `scripts/vsim_env.sh`。
+
 ## 当前建议路线
 
 先只做一个最小闭环：
@@ -26,6 +74,19 @@ tar
 
 `OpenSSL` 的构建通常需要 `perl`。`libsodium` 和 `mbedTLS` 的官方发布包通常可以直接 `make`/`configure`。
 
+## 生成 corpus/
+
+`corpus/` 是本地生成目录，不会提交到 GitHub。它主要包含：
+
+```text
+corpus/sources/     # 下载或手动放置的源码包
+corpus/work/        # 解压、构建、安装中间目录
+corpus/binaries/    # 收集到的 shared/static、stripped/unstripped 产物
+corpus/metadata/    # samples.jsonl 等元数据
+corpus/vsim/        # vSim CSV、dump、cache、fingerprint 输出
+corpus/harness/     # 静态库 harness 可执行文件
+```
+
 ## 第一次只构建一个样本
 
 建议先从一个库、一个版本、一个优化等级开始：
@@ -35,7 +96,8 @@ python3 scripts/collect_crypto_corpus.py \
   --library openssl \
   --version 1.1.1w \
   --opt O2 \
-  --mode shared
+  --mode shared \
+  --reset-metadata
 ```
 
 如果网络受限，可以先手动把源码包下载到：
@@ -52,7 +114,8 @@ python3 scripts/collect_crypto_corpus.py \
   --version 1.1.1w \
   --opt O2 \
   --mode shared \
-  --no-download
+  --no-download \
+  --reset-metadata
 ```
 
 ## 构建全部初始语料
@@ -66,6 +129,18 @@ python3 scripts/collect_crypto_corpus.py
 ```text
 corpus/binaries/
 corpus/metadata/samples.jsonl
+```
+
+如果想重新生成 metadata，可以加 `--reset-metadata`：
+
+```bash
+python3 scripts/collect_crypto_corpus.py --reset-metadata
+```
+
+如果已经存在构建安装目录，只想重新收集产物和 metadata，可以使用：
+
+```bash
+python3 scripts/collect_crypto_corpus.py --collect-only --reset-metadata
 ```
 
 ## metadata 字段
@@ -93,6 +168,50 @@ corpus/metadata/samples.jsonl
 
 1. 接入 vSim，对 `corpus/binaries` 中每个产物提取函数级 feature。
 2. 写一个 SQLite 建库脚本，把 `library/version/compiler/opt/linkage/stripped/feature` 存起来。
+
+## 生成 vSim 输入与特征
+
+先从 metadata 生成 vSim CSV。默认只选择 `shared` 且未 strip 的 ELF：
+
+```bash
+python3 scripts/prepare_vsim_crypto_dataset.py
+```
+
+生成结果位于：
+
+```text
+corpus/vsim/crypto_shared_elf.csv
+corpus/vsim/crypto_shared_elf.selected.jsonl
+corpus/vsim/crypto_shared_elf.skipped.jsonl
+```
+
+然后加载 vSim 环境并运行 value extraction：
+
+```bash
+source scripts/vsim_env.sh
+python scripts/run_vsim_value_extraction.py \
+  --csv corpus/vsim/crypto_shared_elf.csv \
+  --workers 1
+```
+
+生成 fingerprint：
+
+```bash
+python scripts/generate_vsim_fingerprints.py \
+  --csv corpus/vsim/crypto_shared_elf.csv \
+  --fingerprint-dir corpus/vsim/fingerprints \
+  --workers 1 \
+  --expr-workers 1
+```
+
+调试时可以先限制样本数量：
+
+```bash
+python scripts/run_vsim_value_extraction.py \
+  --csv corpus/vsim/crypto_shared_elf.csv \
+  --limit 1 \
+  --workers 1
+```
 
 ## OpenSSL 静态 harness
 
