@@ -1,0 +1,9 @@
+vSim/
+
+.venv/
+.vsim310-venv/
+.uv-python/
+.idea/
+__pycache__/
+*.pyc
+corpus/

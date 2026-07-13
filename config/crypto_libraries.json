@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "target": {
+    "os": "linux",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "optimization_levels": ["O0", "O2", "O3"],
+    "build_modes": ["shared", "static"],
+    "make_jobs": 4
+  },
+  "libraries": [
+    {
+      "name": "openssl",
+      "versions": [
+        {
+          "version": "1.0.2u",
+          "url": "https://github.com/openssl/openssl/releases/download/OpenSSL_1_0_2u/openssl-1.0.2u.tar.gz"
+        },
+        {
+          "version": "1.1.1c",
+          "url": "https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1c/openssl-1.1.1c.tar.gz"
+        },
+        {
+          "version": "1.1.1g",
+          "url": "https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1g/openssl-1.1.1g.tar.gz"
+        },
+        {
+          "version": "1.1.1o",
+          "url": "https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1o/openssl-1.1.1o.tar.gz"
+        },
+        {
+          "version": "1.1.1w",
+          "url": "https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1w/openssl-1.1.1w.tar.gz"
+        },
+        {
+          "version": "3.0.3",
+          "url": "https://github.com/openssl/openssl/releases/download/openssl-3.0.3/openssl-3.0.3.tar.gz"
+        },
+        {
+          "version": "3.0.7",
+          "url": "https://github.com/openssl/openssl/releases/download/openssl-3.0.7/openssl-3.0.7.tar.gz"
+        },
+        {
+          "version": "3.0.13",
+          "url": "https://github.com/openssl/openssl/releases/download/openssl-3.0.13/openssl-3.0.13.tar.gz"
+        }
+      ]
+    },
+    {
+      "name": "libsodium",
+      "versions": [
+        {
+          "version": "1.0.18",
+          "url": "https://download.libsodium.org/libsodium/releases/old/libsodium-1.0.18.tar.gz"
+        },
+        {
+          "version": "1.0.19-stable",
+          "url": "https://download.libsodium.org/libsodium/releases/libsodium-1.0.19-stable.tar.gz"
+        }
+      ]
+    },
+    {
+      "name": "mbedtls",
+      "versions": [
+        {
+          "version": "2.28.9",
+          "url": "https://github.com/Mbed-TLS/mbedtls/releases/download/v2.28.9/mbedtls-2.28.9.tar.bz2"
+        },
+        {
+          "version": "3.6.0",
+          "url": "https://github.com/Mbed-TLS/mbedtls/releases/download/v3.6.0/mbedtls-3.6.0.tar.bz2"
+        }
+      ]
+    }
+  ]
+}
