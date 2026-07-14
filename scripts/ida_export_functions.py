@@ -37,14 +37,32 @@ nx = import_networkx()
 
 
 def get_idb_info() -> str:
-    info = idaapi.get_inf_structure()
-    if info.is_64bit():
-        bits = "64"
-    elif info.is_32bit():
-        bits = "32"
-    else:
-        bits = "unknown"
-    return f"{info.procName}{bits}"
+    try:
+        import ida_ida
+
+        proc_name = ida_ida.inf_get_procname()
+        if ida_ida.inf_is_64bit():
+            bits = "64"
+        elif getattr(ida_ida, "inf_is_32bit_exactly", lambda: False)():
+            bits = "32"
+        else:
+            bits = "unknown"
+        return f"{proc_name}{bits}"
+    except Exception:
+        pass
+
+    get_inf_structure = getattr(idaapi, "get_inf_structure", None)
+    if get_inf_structure is not None:
+        info = get_inf_structure()
+        if info.is_64bit():
+            bits = "64"
+        elif info.is_32bit():
+            bits = "32"
+        else:
+            bits = "unknown"
+        return f"{info.procName}{bits}"
+
+    return "unknown"
 
 
 def build_func_graph(func) -> nx.DiGraph:
