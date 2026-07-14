@@ -7,3 +7,4 @@ vSim/
 __pycache__/
 *.pyc
 corpus/
+IDA/
