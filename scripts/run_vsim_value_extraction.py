@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import os
 import subprocess
 import sys
@@ -36,6 +37,19 @@ def has_existing_dump(path: Path) -> bool:
     return path.exists() and any(path.glob("*.pkl"))
 
 
+def file_md5(path: Path) -> str:
+    h = hashlib.md5()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def cache_path_for(row: dict[str, str]) -> Path:
+    binary = Path(row["binary"])
+    return Path(row["cache_dir"]) / f"{binary.name}_{file_md5(binary)}.pkl"
+
+
 def main() -> None:
     args = parse_args()
     rows = read_rows(args.csv)
@@ -57,6 +71,10 @@ def main() -> None:
                 p.unlink()
         dump_dir.mkdir(parents=True, exist_ok=True)
         Path(row["cache_dir"]).mkdir(parents=True, exist_ok=True)
+        if args.force:
+            cache_path = cache_path_for(row)
+            cache_path.unlink(missing_ok=True)
+            cache_path.with_name(f"{cache_path.stem}_failed.json").unlink(missing_ok=True)
         if has_existing_dump(dump_dir) and not args.force:
             print(f"[skip {idx}/{len(rows)}] existing dump: {dump_dir}")
             continue
@@ -74,6 +92,12 @@ def main() -> None:
             "--workers",
             str(args.workers),
         ]
+        ida_pkl = row.get("ida_pkl", "").strip()
+        if ida_pkl:
+            ida_pkl_path = Path(ida_pkl)
+            if not ida_pkl_path.exists():
+                raise FileNotFoundError(f"IDA pickle not found for {row['binary']}: {ida_pkl_path}")
+            cmd.extend(["--ida", str(ida_pkl_path)])
         print(f"[extract {idx}/{len(rows)}] {row['binary']}")
         subprocess.run(cmd, cwd=args.vsim_home, env=env, check=True)
 
